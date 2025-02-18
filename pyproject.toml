@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "Hackathon-project"
+version = "0.1.0"
+description = ""
+authors = ["dsergeev <dsergeev@rvision.ru>"]
+readme = "README.md"
+
+[tool.poetry.packages]
+- include = "src"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.15.0"
+ruff = "^0.9.6"
+poethepoet = "^0.20.0"
+
+[tool.poe.tasks.mypy]
+shell = "mypy --explicit-package-bases --config-file .mypy.ini --package src"
+
+[tool.poe.tasks.ruff]
+shell = "ruff check --no-cache --output-format grouped --config .ruff.toml ."
+
+[tool.poe.tasks.ruff-fix]
+shell = "ruff check --no-cache --output-format grouped --fix --show-fixes --config .ruff.toml ."
+
+[tool.poetry.plugins."poetry.plugin"]
+"poethepoet" = "poethepoet.plugin:PoePlugin"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
