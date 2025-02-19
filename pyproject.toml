@@ -1,32 +1,26 @@
 [tool.poetry]
-name = "Hackathon-project"
+name = "my google disk"
 version = "0.1.0"
-description = ""
+description = "project for university"
 authors = ["dsergeev <dsergeev@rvision.ru>"]
 readme = "README.md"
 
-[tool.poetry.packages]
-- include = "src"
-
 [tool.poetry.dependencies]
 python = "^3.11"
+fastapi = "^0.115.3"
+uvicorn = "^0.32.0"
+dynaconf = "^3.2.6"
+sqlalchemy = "^2.0.36"
+celery = "^5.4.0"
+pydantic-settings = "^2.7.1"
+pydantic = {extras = ["email"], version = "^2.10.4"}
+alembic = "^1.14.0"
+asyncpg = "^0.30.0"
+redis = {extras = ["asyncio"], version = "^5.2.1"}
+passlib = "^1.7.4"
+boto3 = "^1.35.91"
+python-multipart = "^0.0.20"
 
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.15.0"
-ruff = "^0.9.6"
-poethepoet = "^0.20.0"
-
-[tool.poe.tasks.mypy]
-shell = "mypy --explicit-package-bases --config-file .mypy.ini --package src"
-
-[tool.poe.tasks.ruff]
-shell = "ruff check --no-cache --output-format grouped --config .ruff.toml ."
-
-[tool.poe.tasks.ruff-fix]
-shell = "ruff check --no-cache --output-format grouped --fix --show-fixes --config .ruff.toml ."
-
-[tool.poetry.plugins."poetry.plugin"]
-"poethepoet" = "poethepoet.plugin:PoePlugin"
 
 [build-system]
 requires = ["poetry-core"]
