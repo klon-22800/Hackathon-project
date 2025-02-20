@@ -22,16 +22,19 @@ async def register_user(
 ):
     user_service = UserService(db, auth_service)
     user = await user_service.register_user(user_data)
+    print("lox")
 
     user_dict = parse_obj_as(SUserRegister, user_data).dict()
     send_confirmation_email.delay(user_dict)
 
-    new_folder = Folder(name=str(user.id), owner_id=user.id)
-    db.add(new_folder)
-    await db.commit()
-    await db.refresh(new_folder)
+    if(user.role == "teacher"):
 
-    s3_service.create_user_folder(user.id)
+        new_folder = Folder(name=str(user.id), owner_id=user.id)
+        db.add(new_folder)
+        await db.commit()
+        await db.refresh(new_folder)
+
+        s3_service.create_user_folder(user.id)
 
     return {"message": f"user: {user.name} successfully registered"}
 

@@ -67,12 +67,31 @@ class UserService:
         result = await self.db.execute(select(Folder).filter(Folder.name == path))
         return result.scalar()
 
-    async def create_user(self, email, name: str, hashed_password: str) -> User:
-        new_user = User(
-            email=email,
-            name=name,
-            hashed_password=hashed_password,
-        )
+    async def create_user(self, email, 
+                          name: str, 
+                          hashed_password: str, 
+                          role: str, 
+                          education_programm: str = None, 
+                          course: int = None) -> User:
+        if role == "student":
+            new_user = User(
+                email=email,
+                name=name,
+                hashed_password=hashed_password,
+                role=role,
+                education_programm=education_programm,
+                course=course
+        ) 
+        elif role == "teacher":
+            new_user = User(
+                email=email,
+                name=name,
+                hashed_password=hashed_password,
+                role=role,
+                education_programm=None,
+                course=None
+            )
+        
         self.db.add(new_user)
         await self.db.commit()
         await self.db.refresh(new_user)
@@ -83,14 +102,21 @@ class UserService:
         if existing_user:
             raise HTTPException(
                 status_code=400, detail="Email already registered")
-
-        return await self.create_user(
+        
+        new_user = await self.create_user(
             email=user_data.email,
             hashed_password=self.auth_service.get_password_hash(
                 user_data.password
             ),
-            name=user_data.name
+            name=user_data.name,
+            role=user_data.role,
+            education_programm=user_data.education_programm,
+            course=user_data.course
         )
+        
+        self.db.add(new_user)
+        
+        return  new_user
 
     async def login_user(self, user_data: SUserRegister, response: Response) -> str:
         existing_user = await self.get_user_by_filter(email=user_data.email)
@@ -99,7 +125,8 @@ class UserService:
 
         session_token = self.auth_service.create_session_token()
         session_data = {"user_id": existing_user.id,
-                        "email": existing_user.email}
+                        "email": existing_user.email,
+                        }
         await self.auth_service.save_session(session_token, session_data)
         self.auth_service.set_session_cookie(response, session_token)
 

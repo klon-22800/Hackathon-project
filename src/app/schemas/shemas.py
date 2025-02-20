@@ -6,6 +6,9 @@ class SUserRegister(BaseModel):
     name: str
     email: EmailStr
     password: str
+    role: str #teacher or student 
+    education_programm: str
+    course: int
 
     class Config:
         orm_mode = True
@@ -14,6 +17,7 @@ class SUserRegister(BaseModel):
 class SUserOutput(BaseModel):
     name: str
     email: str
+    role: str #тут скорее всего тоже нужна роль
 
 
 class SUserLogin(BaseModel):
@@ -33,4 +37,5 @@ class FolderCreateRequest(BaseModel):
 
 class ShareFolderRequest(BaseModel):
     folder_path: str
-    user_email: str
+    education_programm: str #шарим папку для студентов с определенной образовательной программой и курсом 
+    course: int
