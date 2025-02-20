@@ -5,9 +5,9 @@ from fastapi import HTTPException, Request, Response
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.app.models import Folder, User, Student, Teacher
+from src.app.models import Folder, User
 from sqlalchemy import select
-from src.app.schemas.shemas import SUserRegister, SStudentRegister
+from src.app.schemas.shemas import SUserRegister
 from passlib.context import CryptContext
 
 
@@ -67,19 +67,37 @@ class UserService:
         result = await self.db.execute(select(Folder).filter(Folder.name == path))
         return result.scalar()
 
-    async def create_user(self, email, name: str, hashed_password: str, role: str) -> User:
-        new_user = User(
-            email=email,
-            name=name,
-            hashed_password=hashed_password,
-            role=role
-        )   
+    async def create_user(self, email, 
+                          name: str, 
+                          hashed_password: str, 
+                          role: str, 
+                          education_programm: str = None, 
+                          course: int = None) -> User:
+        if role == "student":
+            new_user = User(
+                email=email,
+                name=name,
+                hashed_password=hashed_password,
+                role=role,
+                education_programm=education_programm,
+                course=course
+        ) 
+        elif role == "teacher":
+            new_user = User(
+                email=email,
+                name=name,
+                hashed_password=hashed_password,
+                role=role,
+                education_programm=None,
+                course=None
+            )
+        
         self.db.add(new_user)
         await self.db.commit()
         await self.db.refresh(new_user)
         return new_user
 
-    async def register_user(self, user_data: SStudentRegister) -> User:
+    async def register_user(self, user_data: SUserRegister) -> User:
         existing_user = await self.get_user_by_filter(email=user_data.email)
         if existing_user:
             raise HTTPException(
@@ -91,18 +109,12 @@ class UserService:
                 user_data.password
             ),
             name=user_data.name,
-            role=user_data.role
+            role=user_data.role,
+            education_programm=user_data.education_programm,
+            course=user_data.course
         )
-        if user_data.role == "teacher":
-            new_teacher = Teacher(user_id=new_user.id)
-            self.db.add(new_teacher)
-        elif user_data.role == "student":
-            new_student = Student(user=new_user, 
-                                  course=user_data.course,
-                                  education_programm=user_data.education_programm)
-            self.db.add(new_student)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid role")
+        
+        self.db.add(new_user)
         
         return  new_user
 

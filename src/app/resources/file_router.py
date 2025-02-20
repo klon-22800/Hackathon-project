@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Query
 
-from src.app.models import Folder, SharedAccess, User, Student, Teacher
+from src.app.models import Folder, SharedAccess, User
 from src.app.schemas.shemas import FolderCreateRequest, RenameFileRequest, ShareFolderRequest
 from src.app.services.auth import AuthService, UserService
 from src.app.core.database import get_auth_service, get_db, get_s3_service
@@ -151,29 +151,20 @@ async def share_folder(
     #Логика: в ShareFolderRequest лежит курс и номер направления, найдем всех студентов с правильными полями и выдаем им доступ по почте
 
     folder_path = data.folder_path
-    user_email = data.user_email
     user_service = UserService(db, auth_service)
 
     course = data.course  #получили курс и образовательную программу 
     education_programm = data.education_programm
 
     students = await db.execute(  #
-        select(Student)
-        .join(User, User.id == Student.user_id)
-        .filter(Student.course == course, Student.education_programm == education_programm)
-    )
+        select(User).filter(User.course == course and User.education_programm == education_programm)
+        )
     
     students = students.scalars().all()
 
 
     current_user = await user_service.get_current_user(request)
 
-    # Получаем пользователя по почте
-    user = await db.execute(select(User).filter(User.email == user_email))
-    user = user.scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
     ##Вроде как проверка по анологии с верхним
     if not students:
         raise HTTPException(status_code=404, detail="No students found for the given course and program")
@@ -186,22 +177,16 @@ async def share_folder(
     if not folder or folder.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="No access to this folder")
 
-    # Создаем запись о доступе
-    shared_access = SharedAccess(
-        folder_id=folder.id, user_id=user.id, permissions="download"
-    )
-
     #Для каждого студента выставляем permission download 
     for student in students:
+        print(student)
         shared_access = SharedAccess(
             folder_id=folder.id, 
-            user_id=student.user_id, 
+            user_id=student.id, 
             permissions="download"  # Студенты могут только скачивать
         )
         db.add(shared_access)
-
-
-    db.add(shared_access)
+    
     await db.commit()
 
     return {"message": "Access granted successfully"}
