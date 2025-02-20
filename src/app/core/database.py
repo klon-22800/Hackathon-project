@@ -1,8 +1,14 @@
 from functools import lru_cache
+
 from fastapi import Request
+from sqlalchemy.ext.asyncio import (
+        AsyncSession, 
+        async_sessionmaker, 
+        create_async_engine
+    )
+
 from src.app.services.s3 import S3Service
 from src.app.core.config import settings
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 def make_pg_options(
@@ -12,6 +18,7 @@ def make_pg_options(
     lock_timeout: int = 30_000,
     idle_in_transaction_session_timeout: int = 60_000,
 ) -> dict[str, str]:
+
     return {
         "application_name": app_name,
         "timezone": timezone,
@@ -19,7 +26,6 @@ def make_pg_options(
         "lock_timeout": str(lock_timeout),
         "idle_in_transaction_session_timeout": str(idle_in_transaction_session_timeout),
     }
-
 
 async_engine = create_async_engine(
     url=settings.db_dsn,

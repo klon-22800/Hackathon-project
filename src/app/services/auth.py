@@ -1,14 +1,13 @@
-
 import json
 import uuid
-from fastapi import HTTPException, Request, Response
 
+from fastapi import HTTPException, Request, Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from passlib.context import CryptContext
 
 from src.app.models import Folder, User
-from sqlalchemy import select
-from src.app.schemas.shemas import SUserRegister
-from passlib.context import CryptContext
+from src.app.schemas.shemas import SUserRegister, Role
 
 
 class AuthService:
@@ -64,7 +63,9 @@ class UserService:
 
     async def get_by_path(self, path: str):
         print(path, "PATH")
-        result = await self.db.execute(select(Folder).filter(Folder.name == path))
+        result = await self.db.execute(
+            select(Folder).filter(Folder.name == path)
+            )
         return result.scalar()
 
     async def create_user(self, email, 
@@ -73,7 +74,7 @@ class UserService:
                           role: str, 
                           education_programm: str = None, 
                           course: int = None) -> User:
-        if role == "student":
+        if role == Role.student:
             new_user = User(
                 email=email,
                 name=name,
@@ -82,7 +83,7 @@ class UserService:
                 education_programm=education_programm,
                 course=course
         ) 
-        elif role == "teacher":
+        else:
             new_user = User(
                 email=email,
                 name=name,
@@ -93,8 +94,10 @@ class UserService:
             )
         
         self.db.add(new_user)
+
         await self.db.commit()
         await self.db.refresh(new_user)
+
         return new_user
 
     async def register_user(self, user_data: SUserRegister) -> User:
@@ -120,6 +123,7 @@ class UserService:
 
     async def login_user(self, user_data: SUserRegister, response: Response) -> str:
         existing_user = await self.get_user_by_filter(email=user_data.email)
+
         if not existing_user or not self.auth_service.verify_password(user_data.password, existing_user.hashed_password):
             raise HTTPException(status_code=400, detail="Email not registered")
 
@@ -128,19 +132,23 @@ class UserService:
                         "email": existing_user.email,
                         }
         await self.auth_service.save_session(session_token, session_data)
+
         self.auth_service.set_session_cookie(response, session_token)
 
     async def get_current_user(self, request: Request) -> User:
         session_token = request.cookies.get("session_token")
+
         if not session_token:
             raise HTTPException(status_code=401, detail="Not authenticated")
 
         session_data = await self.auth_service.get_session(session_token)
+
         if not session_data:
             raise HTTPException(
                 status_code=401, detail="Session expired or invalid")
 
         user = await self.get_user_by_filter(id=session_data["user_id"])
+
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
 

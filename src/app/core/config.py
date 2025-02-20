@@ -16,7 +16,6 @@ _db_dsn = AnyUrl.build(
     path=_settings.database.db,
 )
 
-
 class Settings(BaseSettings):
     db_dsn: str
     app_name: str
