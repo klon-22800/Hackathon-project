@@ -2,7 +2,7 @@ import uuid
 
 from typing import List
 
-from sqlalchemy import ForeignKey, UUID
+from sqlalchemy import ForeignKey, UUID, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 
 from src.app.schemas.shemas import Role
@@ -28,7 +28,7 @@ class User(Base):
         "SharedAccess", back_populates="user"
     )
 
-    role: Mapped[Role] = mapped_column(nullable=False, default=Role.student)
+    role: Mapped[Role] = mapped_column(Enum(Role), nullable=False, default=Role.student)
 
     education_programm: Mapped[str] = mapped_column(nullable=True)
     course: Mapped[int] = mapped_column(nullable=True)
