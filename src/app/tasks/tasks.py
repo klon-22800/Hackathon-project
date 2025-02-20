@@ -11,7 +11,6 @@ from src.app.core.config import settings
 def send_confirmation_email(
     user: SUserRegister,
 ):
-    print("LOX")
     msg_content = create_confirmation_template(user)
     with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port) as server:
         server.login(settings.email, settings.password)

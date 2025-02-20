@@ -1,9 +1,12 @@
 [tool.poetry]
-name = "my google disk"
+name = "My-google-disk"
 version = "0.1.0"
 description = "project for university"
 authors = ["dsergeev <dsergeev@rvision.ru>"]
-readme = "README.md"
+package-mode = false  # Если вы не хотите создавать пакет
+
+
+
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -20,6 +23,7 @@ redis = {extras = ["asyncio"], version = "^5.2.1"}
 passlib = "^1.7.4"
 boto3 = "^1.35.91"
 python-multipart = "^0.0.20"
+bcrypt = "^4.2.1"
 
 
 [build-system]

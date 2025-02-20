@@ -1,9 +1,10 @@
 database:
   user: postgres
-  password: postgres
+  password: Rikardo__
   host: localhost
   port: 5432
   db: google_disk
+
 
 celery:
   broker: redis://localhost:6379/0

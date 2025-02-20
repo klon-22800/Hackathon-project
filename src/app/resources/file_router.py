@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Query
 
-from src.app.models import Folder, SharedAccess, User
+from src.app.models import Folder, SharedAccess, User, Student, Teacher
 from src.app.schemas.shemas import FolderCreateRequest, RenameFileRequest, ShareFolderRequest
 from src.app.services.auth import AuthService, UserService
 from src.app.core.database import get_auth_service, get_db, get_s3_service
@@ -27,15 +27,18 @@ async def upload_file(
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
 
-    try:
-        file_data = await file.read()
-        folder = folder_path or ""
-        s3_service.upload_file(folder,
-                               current_user.id, file.filename, file_data
-                               )
-        return {"message": "File uploaded successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if current_user.role == "teacher":
+        try:
+            file_data = await file.read()
+            folder = folder_path or ""
+            s3_service.upload_file(folder,
+                                current_user.id, file.filename, file_data
+                                )
+            return {"message": "File uploaded successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    else:
+        raise HTTPException(status_code=403, detail="Only teachers can upload files")
 
 
 @router.get("/files")
@@ -93,13 +96,16 @@ async def rename_file(
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
 
-    try:
-        s3_service.rename_file(
-            current_user.id, rename_file.old_name, rename_file.new_name
-        )
-        return {"message": "File renamed successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if current_user.role == 'teacher':
+        try:
+            s3_service.rename_file(
+                current_user.id, rename_file.old_name, rename_file.new_name
+            )
+            return {"message": "File renamed successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    else: 
+        raise HTTPException(status_code=403, detail="Only teachers can rename files")
 
 
 @router.get("/files/download")
@@ -142,9 +148,24 @@ async def share_folder(
     auth_service: AuthService = Depends(get_auth_service),
 ):
     """Предоставление доступа к папке другому пользователю"""
+    #Логика: в ShareFolderRequest лежит курс и номер направления, найдем всех студентов с правильными полями и выдаем им доступ по почте
+
     folder_path = data.folder_path
     user_email = data.user_email
     user_service = UserService(db, auth_service)
+
+    course = data.course  #получили курс и образовательную программу 
+    education_programm = data.education_programm
+
+    students = await db.execute(  #
+        select(Student)
+        .join(User, User.id == Student.user_id)
+        .filter(Student.course == course, Student.education_programm == education_programm)
+    )
+    
+    students = students.scalars().all()
+
+
     current_user = await user_service.get_current_user(request)
 
     # Получаем пользователя по почте
@@ -152,6 +173,12 @@ async def share_folder(
     user = user.scalars().first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    ##Вроде как проверка по анологии с верхним
+    if not students:
+        raise HTTPException(status_code=404, detail="No students found for the given course and program")
+    
+
     # Находим папку по пути
     # Этот метод должен находить папку по пути
     path_name = f"users/{current_user.id}/{folder_path}"
@@ -161,8 +188,19 @@ async def share_folder(
 
     # Создаем запись о доступе
     shared_access = SharedAccess(
-        folder_id=folder.id, user_id=user.id, permissions="permissions"
+        folder_id=folder.id, user_id=user.id, permissions="download"
     )
+
+    #Для каждого студента выставляем permission download 
+    for student in students:
+        shared_access = SharedAccess(
+            folder_id=folder.id, 
+            user_id=student.user_id, 
+            permissions="download"  # Студенты могут только скачивать
+        )
+        db.add(shared_access)
+
+
     db.add(shared_access)
     await db.commit()
 
