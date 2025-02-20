@@ -67,7 +67,19 @@ class UserService:
         result = await self.db.execute(select(Folder).filter(Folder.name == path))
         return result.scalar()
 
-    async def create_user(self, email, name: str, hashed_password: str) -> User:
+    async def create_user(self, email, name: str, hashed_password: str, role: str) -> User:
+        new_user = User(
+            email=email,
+            name=name,
+            hashed_password=hashed_password,
+            role=role
+        )   
+        self.db.add(new_user)
+        await self.db.commit()
+        await self.db.refresh(new_user)
+        return new_user
+    
+    async def create_teacher(self, email, name: str, hashed_password: str) -> User:
         new_user = User(
             email=email,
             name=name,
@@ -89,13 +101,14 @@ class UserService:
             hashed_password=self.auth_service.get_password_hash(
                 user_data.password
             ),
-            name=user_data.name
+            name=user_data.name,
+            role=user_data.role
         )
         if user_data.role == "teacher":
             new_teacher = Teacher(user_id=new_user.id)
             self.db.add(new_teacher)
         elif user_data.role == "student":
-            new_student = Student(user_id=new_user.id)
+            new_student = Student(user=new_user)
             self.db.add(new_student)
         else:
             raise HTTPException(status_code=400, detail="Invalid role")

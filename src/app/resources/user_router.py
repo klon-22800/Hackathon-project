@@ -22,6 +22,7 @@ async def register_user(
 ):
     user_service = UserService(db, auth_service)
     user = await user_service.register_user(user_data)
+    print("lox")
 
     user_dict = parse_obj_as(SUserRegister, user_data).dict()
     send_confirmation_email.delay(user_dict)

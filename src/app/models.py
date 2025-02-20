@@ -11,7 +11,6 @@ class Base(AsyncAttrs, DeclarativeBase):
 
 class User(Base):
     __tablename__ = "users"
-
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column()
     email: Mapped[str] = mapped_column(unique=True)
@@ -30,16 +29,18 @@ class User(Base):
 
     # Связь с учителями и студентами
     teacher: Mapped["Teacher"] = relationship(
-        "Teacher", back_populates="user", uselist=False
+        "Teacher", back_populates="user", uselist=False,
+        primaryjoin="User.id == Teacher.user_id"
     )
+
     student: Mapped["Student"] = relationship(
-        "Student", back_populates="user", uselist=False
+        "Student", back_populates="user", uselist=False,
+        primaryjoin="User.id == Student.user_id"
     )
 
 
 class Folder(Base):
     __tablename__ = "folders"
-
     id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
@@ -59,18 +60,20 @@ class Folder(Base):
 
 class SharedAccess(Base):
     __tablename__ = "shared_access"
-
     id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    # к какой папке есть доступ
+
+    # К какой папке есть доступ
     folder_id: Mapped[UUID] = mapped_column(
         ForeignKey("folders.id"), nullable=False
     )
-    # у какого пользователя есть этот доступ 
+
+    # У какого пользователя есть этот доступ
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), nullable=False
     )
+
     # Уровень разрешений: "edit" для учителей, "download" для студентов
     permissions: Mapped[str] = mapped_column(nullable=False)
 
@@ -84,39 +87,40 @@ class SharedAccess(Base):
 class Teacher(Base):
     __tablename__ = "teachers"
 
-    # уникальный id препода
-    id: Mapped[int] = mapped_column(primary_key=True) 
+    # Уникальный ID препода
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    # связь с user.id
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), nullable=False, unique=True
-    )
+    # Внешний ключ на таблицу users
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
     user: Mapped["User"] = relationship(back_populates="teacher")
 
-    # связь с доступами (права редактирования)
+    # Связь с доступами (права редактирования)
     access_rights: Mapped[list["SharedAccess"]] = relationship(
-        "SharedAccess", back_populates="user", cascade="all, delete-orphan"
+        "SharedAccess",
+        primaryjoin="Teacher.user_id == SharedAccess.user_id",
+        foreign_keys="[SharedAccess.user_id]",
+        viewonly=True
     )
 
 
 class Student(Base):
     __tablename__ = "students"
 
-    # id студента 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    # связь с id пользователя 
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), nullable=False, unique=True
-    )
+    # Внешний ключ на таблицу users
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
-    education_programm: Mapped[str] = mapped_column(primary_key=False)  
-    course: Mapped[int] = mapped_column(primary_key=False)  
+    education_programm: Mapped[str] = mapped_column()
+    course: Mapped[int] = mapped_column()
 
     user: Mapped["User"] = relationship(back_populates="student")
 
-    # связь с доступами (права на скачивание)
+    # Связь с доступами (права на скачивание)
     access_rights: Mapped[list["SharedAccess"]] = relationship(
-        "SharedAccess", back_populates="user", cascade="all, delete-orphan"
+        "SharedAccess",
+        primaryjoin="Student.user_id == remote(SharedAccess.user_id)",
+        foreign_keys="[SharedAccess.user_id]",
+        viewonly=True
     )

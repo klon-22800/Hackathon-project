@@ -23,6 +23,7 @@ redis = {extras = ["asyncio"], version = "^5.2.1"}
 passlib = "^1.7.4"
 boto3 = "^1.35.91"
 python-multipart = "^0.0.20"
+bcrypt = "^4.2.1"
 
 
 [build-system]
