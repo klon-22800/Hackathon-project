@@ -56,3 +56,4 @@ class ShareFolderRequest(BaseModel):
     folder_path: str
     education_programm: str
     course: PositiveInt
+    permission: Permission

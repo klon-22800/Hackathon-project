@@ -92,6 +92,7 @@ class S3Service:
             raise HTTPException(
                 status_code=500, detail=f"Failed to delete file: {e}")
 
+
     def rename_file(self, user_id: int, old_file_name: str, new_file_name: str):
         folder_name = self.get_user_folder(user_id)
         old_key = f"{folder_name}/{old_file_name}"

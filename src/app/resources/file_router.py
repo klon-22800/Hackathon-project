@@ -11,6 +11,7 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from io import BytesIO
 from urllib.parse import quote
@@ -193,7 +194,7 @@ async def share_folder(
         shared_access = SharedAccess(
             folder_id=folder.id, 
             user_id=student.id, 
-            permissions="download"  # Студенты могут только скачивать
+            permissions=data.permission  # выдача определенных разрешений 
         )
         print(student.course, student.education_programm, "22222")
         db.add(shared_access)
@@ -213,12 +214,14 @@ async def get_shared_folders(
 
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
+    
+    result = await db.execute(
+        select(SharedAccess).options(selectinload(SharedAccess.folder)).filter(SharedAccess.user_id == current_user.id)
+    )
 
-    shared_folders = []
-
-    # for access in current_user.shared_access:
-    #     shared_folders.append(access.folder.name)
-
+    shared_accesses = result.scalars().all()
+    shared_folders = [access.folder.name for access in shared_accesses]
+    
     return shared_folders
 
 
