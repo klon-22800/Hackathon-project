@@ -193,15 +193,15 @@ async def share_folder(
     for student in students:
         # Проверка на то, есть ли уже доступ
         existing_access = await db.execute(
-            select(SharedAccess).filter(
-                SharedAccess.folder_id == folder.id,
-                SharedAccess.user_id == student.id
-            )
+            select(SharedAccess).filter( (SharedAccess.folder_id == folder.id) & (SharedAccess.user_id == student.id))
         )
         existing_access = existing_access.scalars().first()
 
         if existing_access:
-            print(f"Access already granted to student {student.id} for folder {folder.id}")
+            # Если разрешения различаются => обновляем их
+            if existing_access.permissions != data.permission:
+                existing_access.permissions = data.permission
+                db.add(existing_access)
             continue
 
         shared_access = SharedAccess(
@@ -213,7 +213,8 @@ async def share_folder(
 
     await db.commit()
 
-    return {"message": "Access granted successfully"}
+    return {"message": "Access granted or updated successfully"}
+
 
 
 @router.get("/folders/shared")
