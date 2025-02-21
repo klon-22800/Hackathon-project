@@ -8,6 +8,14 @@ class Role(Enum):
     student = 1
     teacher = 2
 
+    def __json__(self):
+        return {self.name}
+
+
+class Permission(Enum):
+    download = 1
+    edit = 2
+
 
 PositiveInt = Annotated[int, Field(strict=True, gt=0)]
 

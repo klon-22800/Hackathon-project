@@ -213,16 +213,13 @@ async def get_shared_folders(
 
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
-    query = (
-        select(Folder)
-        .join(SharedAccess, SharedAccess.folder_id == Folder.id)
-        .join(User, SharedAccess.user_id == User.id)
-        .where(SharedAccess.user_id == current_user.id)
-    )
-    result = await db.execute(query)
-    shared_folders = result.scalars().all()
 
-    return [file.name for file in shared_folders]
+    shared_folders = []
+
+    # for access in current_user.shared_access:
+    #     shared_folders.append(access.folder.name)
+
+    return shared_folders
 
 
 @router.post("/folders")

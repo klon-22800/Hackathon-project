@@ -153,3 +153,11 @@ class UserService:
             raise HTTPException(status_code=401, detail="User not found")
 
         return user
+
+    @staticmethod
+    async def get_permissions(user: User, folder: Folder):
+        for permission in user.shared_access:
+            if permission.folder_id == folder.id:
+                return permission.permissions
+        
+        return None

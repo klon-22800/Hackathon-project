@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import parse_obj_as
 
 from src.app.services.s3 import S3Service
 from src.app.services.auth import AuthService, UserService
@@ -23,7 +22,7 @@ async def register_user(
     user_service = UserService(db, auth_service)
     user = await user_service.register_user(user_data)
 
-    user_dict = parse_obj_as(SUserRegister, user_data).dict()
+    user_dict = user_data.model_dump_json()
     send_confirmation_email.delay(user_dict)
 
     if(user.role == Role.teacher):

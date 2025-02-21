@@ -5,7 +5,7 @@ from typing import List
 from sqlalchemy import ForeignKey, UUID, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 
-from src.app.schemas.shemas import Role
+from src.app.schemas.shemas import Role, Permission
 
 
 class Base(DeclarativeBase):
@@ -61,8 +61,7 @@ class SharedAccess(Base):
         ForeignKey("users.id"), nullable=False
     )
 
-    # Уровень разрешений: "edit" для учителей, "download" для студентов
-    permissions: Mapped[str] = mapped_column(nullable=False)
+    permissions: Mapped[Permission] = mapped_column(Enum(Permission), nullable=False)
 
     folder: Mapped["Folder"] = relationship(back_populates="shared_users")
 
