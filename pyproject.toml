@@ -12,7 +12,6 @@ package-mode = false  # Если вы не хотите создавать па�
 python = "^3.11"
 fastapi = "^0.115.3"
 uvicorn = "^0.32.0"
-dynaconf = "^3.2.6"
 sqlalchemy = "^2.0.36"
 celery = "^5.4.0"
 pydantic-settings = "^2.7.1"
@@ -24,6 +23,7 @@ passlib = "^1.7.4"
 boto3 = "^1.35.91"
 python-multipart = "^0.0.20"
 bcrypt = "^4.2.1"
+dynaconf = "^3.2.10"
 
 
 [build-system]

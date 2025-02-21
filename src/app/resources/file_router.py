@@ -175,9 +175,8 @@ async def share_folder(
     education_programm = data.education_programm
 
     students = await db.execute(
-        select(User).filter(User.course == course and User.education_programm == education_programm)
-        )
-    
+        select(User).filter((User.course == course) & (User.education_programm == education_programm))
+    )
     students = students.scalars().all()
 
     current_user = await user_service.get_current_user(request)
@@ -196,6 +195,7 @@ async def share_folder(
             user_id=student.id, 
             permissions="download"  # Студенты могут только скачивать
         )
+        print(student.course, student.education_programm, "22222")
         db.add(shared_access)
     
     await db.commit()
