@@ -1,14 +1,32 @@
-from pydantic import BaseModel, EmailStr
-from datetime import date
+from enum import Enum
+from typing import Annotated
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+class Role(Enum):
+    student = 1
+    teacher = 2
+
+    def __json__(self):
+        return {self.name}
+
+
+class Permission(Enum):
+    download = 1
+    edit = 2
+
+
+PositiveInt = Annotated[int, Field(strict=True, gt=0)]
 
 
 class SUserRegister(BaseModel):
     name: str
     email: EmailStr
     password: str
-    role: str #teacher or student 
+    role: Role
     education_programm: str
-    course: int
+    course: PositiveInt
 
     class Config:
         orm_mode = True
@@ -17,8 +35,7 @@ class SUserRegister(BaseModel):
 class SUserOutput(BaseModel):
     name: str
     email: str
-    role: str #тут скорее всего тоже нужна роль
-
+    role: Role
 
 class SUserLogin(BaseModel):
     email: EmailStr
@@ -37,5 +54,5 @@ class FolderCreateRequest(BaseModel):
 
 class ShareFolderRequest(BaseModel):
     folder_path: str
-    education_programm: str #шарим папку для студентов с определенной образовательной программой и курсом 
-    course: int
+    education_programm: str
+    course: PositiveInt

@@ -1,16 +1,31 @@
-from io import BytesIO
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, HTTPException
+from fastapi import (
+        APIRouter, 
+        Depends, 
+        File, 
+        Form, 
+        Query, 
+        Request, 
+        UploadFile, 
+        HTTPException
+    )
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Query
+
+from io import BytesIO
+from urllib.parse import quote
 
 from src.app.models import Folder, SharedAccess, User
-from src.app.schemas.shemas import FolderCreateRequest, RenameFileRequest, ShareFolderRequest
+from src.app.schemas.shemas import (
+    FolderCreateRequest, 
+    RenameFileRequest, 
+    ShareFolderRequest,
+    Role
+    )
 from src.app.services.auth import AuthService, UserService
 from src.app.core.database import get_auth_service, get_db, get_s3_service
 from src.app.services.s3 import S3Service
-from urllib.parse import quote
+
 
 router = APIRouter(prefix="/mydisk", tags=["Загрузка файлов"],)
 
@@ -27,7 +42,7 @@ async def upload_file(
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
 
-    if current_user.role == "teacher":
+    if current_user.role == Role.teacher:
         try:
             file_data = await file.read()
             folder = folder_path or ""
@@ -51,6 +66,7 @@ async def list_user_files(
 ):
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
+
     try:
         files = s3_service.list_files(current_user.id)
         prefix = f"users/{current_user.id}/" if path == '/' else f"users/{current_user.id}/{path}"
@@ -96,7 +112,7 @@ async def rename_file(
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
 
-    if current_user.role == 'teacher':
+    if current_user.role == Role.teacher:
         try:
             s3_service.rename_file(
                 current_user.id, rename_file.old_name, rename_file.new_name
@@ -143,43 +159,38 @@ async def download_file(
 @router.post("/folders/share")
 async def share_folder(
     request: Request,
-    data: ShareFolderRequest,   # Почта пользователя
+    data: ShareFolderRequest,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
 ):
-    """Предоставление доступа к папке другому пользователю"""
-    #Логика: в ShareFolderRequest лежит курс и номер направления, найдем всех студентов с правильными полями и выдаем им доступ по почте
+    """Предоставление доступа к папке другому пользователю
+        Логика: в ShareFolderRequest лежит курс и номер направления, 
+        найдем всех студентов с правильными полями и выдаем им доступ по почте
+    """
 
     folder_path = data.folder_path
     user_service = UserService(db, auth_service)
 
-    course = data.course  #получили курс и образовательную программу 
+    course = data.course
     education_programm = data.education_programm
 
-    students = await db.execute(  #
+    students = await db.execute(
         select(User).filter(User.course == course and User.education_programm == education_programm)
         )
     
     students = students.scalars().all()
 
-
     current_user = await user_service.get_current_user(request)
 
-    ##Вроде как проверка по анологии с верхним
     if not students:
         raise HTTPException(status_code=404, detail="No students found for the given course and program")
-    
 
-    # Находим папку по пути
-    # Этот метод должен находить папку по пути
     path_name = f"users/{current_user.id}/{folder_path}"
     folder = await user_service.get_by_path(path_name)
     if not folder or folder.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="No access to this folder")
 
-    #Для каждого студента выставляем permission download 
     for student in students:
-        print(student)
         shared_access = SharedAccess(
             folder_id=folder.id, 
             user_id=student.id, 
@@ -199,20 +210,16 @@ async def get_shared_folders(
     auth_service: AuthService = Depends(get_auth_service),
 ):
     """Получить список расшаренных папок для текущего пользователя"""
+
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
-    query = (
-        select(Folder)
-        .join(SharedAccess, SharedAccess.folder_id == Folder.id)
-        .join(User, SharedAccess.user_id == User.id)
-        .where(SharedAccess.user_id == current_user.id)
-    )
-    result = await db.execute(query)
-    shared_folders = result.scalars().all()
-    filtered_files = {
-        "files": [file.name for file in shared_folders]
-    }
-    return [file.name for file in shared_folders]
+
+    shared_folders = []
+
+    # for access in current_user.shared_access:
+    #     shared_folders.append(access.folder.name)
+
+    return shared_folders
 
 
 @router.post("/folders")
@@ -238,8 +245,10 @@ async def create_folder(
         owner_id=current_user.id
     )
     db.add(new_folder)
+
     await db.commit()
     await db.refresh(new_folder)
+
     # Создаем папку в S3
     path_name = s3_service.get_user_folder(current_user.id)
     s3_service.create_folder(folder_name)
@@ -259,7 +268,7 @@ async def delete_folder(
     current_user = await user_service.get_current_user(request)
     path_name = s3_service.get_user_folder(current_user.id)
     folder_name = f'{path_name}/{path}'
-    # Проверяем существование папки
+
     folder = await db.execute(
         select(Folder).where(Folder.name == folder_name,
                              Folder.owner_id == current_user.id)
@@ -269,11 +278,9 @@ async def delete_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Папка не найдена")
 
-    # Удаляем папку из базы данных
     await db.delete(folder)
     await db.commit()
 
-    # Удаляем папку из S3
     s3_service.delete_folder(current_user.id, folder_name)
 
     return {"detail": "Папка успешно удалена"}
@@ -287,10 +294,10 @@ async def list_shared_files(
 
     path = path[1:-1]
     try:
-
         filtered_files = [
             file.replace(path, "") for file in s3_service.list_files_shared(path) if file != path
         ]
         return filtered_files
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,4 +1,5 @@
 import boto3
+
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
 
@@ -63,6 +64,7 @@ class S3Service:
                 Bucket=self.bucket_name, Prefix=f"{folder_name}/"
             )
             return [obj["Key"] for obj in response.get("Contents", [])]
+
         except ClientError as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to list files: {e}")
@@ -74,12 +76,14 @@ class S3Service:
             )
             print("response", response)
             return [obj["Key"] for obj in response.get("Contents", [])]
+
         except ClientError as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to list files: {e}")
 
     def delete_file(self, user_id: int, file_name: str):
         folder_name = self.get_user_folder(user_id)
+
         try:
             self.s3_client.delete_object(
                 Bucket=self.bucket_name, Key=f"{folder_name}/{file_name}"
@@ -92,6 +96,7 @@ class S3Service:
         folder_name = self.get_user_folder(user_id)
         old_key = f"{folder_name}/{old_file_name}"
         new_key = f"{folder_name}/{new_file_name}"
+
         try:
             self.s3_client.copy_object(
                 Bucket=self.bucket_name,
@@ -110,6 +115,7 @@ class S3Service:
             response = self.s3_client.get_object(
                 Bucket=self.bucket_name, Key=key)
             return response['Body'].read()
+
         except ClientError as e:
             raise Exception(f"Ошибка при скачивании файла: {str(e)}")
 

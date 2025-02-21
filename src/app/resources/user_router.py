@@ -1,15 +1,14 @@
-from urllib import request
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.services.s3 import S3Service
-from src.app.tasks.tasks import send_confirmation_email
-from src.app.models import Folder, User
-from src.app.core.database import get_auth_service, get_db, get_s3_service
-from src.app.schemas.shemas import SUserLogin, SUserOutput, SUserRegister
 from src.app.services.auth import AuthService, UserService
+from src.app.tasks.tasks import send_confirmation_email
+from src.app.models import Folder
+from src.app.core.database import get_auth_service, get_db, get_s3_service
+from src.app.schemas.shemas import SUserLogin, SUserOutput, SUserRegister, Role
 
-from pydantic import EmailStr, parse_obj_as
+
 router = APIRouter(prefix="/auth", tags=["Auth & Пользователи"],)
 
 
@@ -22,15 +21,14 @@ async def register_user(
 ):
     user_service = UserService(db, auth_service)
     user = await user_service.register_user(user_data)
-    print("lox")
 
-    user_dict = parse_obj_as(SUserRegister, user_data).dict()
+    user_dict = user_data.model_dump_json()
     send_confirmation_email.delay(user_dict)
 
-    if(user.role == "teacher"):
-
+    if(user.role == Role.teacher):
         new_folder = Folder(name=str(user.id), owner_id=user.id)
         db.add(new_folder)
+
         await db.commit()
         await db.refresh(new_folder)
 
@@ -47,7 +45,9 @@ async def login_user(
     db: AsyncSession = Depends(get_db)
 ):
     user_service = UserService(db, auth_service)
+
     await user_service.login_user(user_data, response)
+
     return {"message": "Login successful"}
 
 
@@ -58,11 +58,14 @@ async def logout_user(
     auth_service: AuthService = Depends(get_auth_service)
 ):
     session_token = request.cookies.get("session_token")
+
     if not session_token:
         raise HTTPException(status_code=400, detail="No active session")
 
     await auth_service.delete_session(session_token)
+
     response.delete_cookie("session_token")
+
     return {"message": "Logged out successfully"}
 
 
@@ -74,4 +77,7 @@ async def read_users_me(
 ):
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
-    return SUserOutput(name=current_user.name, email=current_user.email)
+
+    return SUserOutput(name=current_user.name, 
+                       email=current_user.email, 
+                       role=current_user.role)
