@@ -191,14 +191,26 @@ async def share_folder(
         raise HTTPException(status_code=403, detail="No access to this folder")
 
     for student in students:
+        # Проверка на то, есть ли уже доступ
+        existing_access = await db.execute(
+            select(SharedAccess).filter(
+                SharedAccess.folder_id == folder.id,
+                SharedAccess.user_id == student.id
+            )
+        )
+        existing_access = existing_access.scalars().first()
+
+        if existing_access:
+            print(f"Access already granted to student {student.id} for folder {folder.id}")
+            continue
+
         shared_access = SharedAccess(
             folder_id=folder.id, 
             user_id=student.id, 
-            permissions=data.permission  # выдача определенных разрешений 
+            permissions=data.permission  # выдача определенных разрешений
         )
-        print(student.course, student.education_programm, "22222")
         db.add(shared_access)
-    
+
     await db.commit()
 
     return {"message": "Access granted successfully"}
