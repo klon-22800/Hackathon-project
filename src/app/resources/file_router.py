@@ -11,6 +11,7 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from io import BytesIO
 from urllib.parse import quote
@@ -175,9 +176,8 @@ async def share_folder(
     education_programm = data.education_programm
 
     students = await db.execute(
-        select(User).filter(User.course == course and User.education_programm == education_programm)
-        )
-    
+        select(User).filter((User.course == course) & (User.education_programm == education_programm))
+    )
     students = students.scalars().all()
 
     current_user = await user_service.get_current_user(request)
@@ -191,16 +191,30 @@ async def share_folder(
         raise HTTPException(status_code=403, detail="No access to this folder")
 
     for student in students:
+        # Проверка на то, есть ли уже доступ
+        existing_access = await db.execute(
+            select(SharedAccess).filter( (SharedAccess.folder_id == folder.id) & (SharedAccess.user_id == student.id))
+        )
+        existing_access = existing_access.scalars().first()
+
+        if existing_access:
+            # Если разрешения различаются => обновляем их
+            if existing_access.permissions != data.permission:
+                existing_access.permissions = data.permission
+                db.add(existing_access)
+            continue
+
         shared_access = SharedAccess(
             folder_id=folder.id, 
             user_id=student.id, 
-            permissions="download"  # Студенты могут только скачивать
+            permissions=data.permission  # выдача определенных разрешений
         )
         db.add(shared_access)
-    
+
     await db.commit()
 
-    return {"message": "Access granted successfully"}
+    return {"message": "Access granted or updated successfully"}
+
 
 
 @router.get("/folders/shared")
@@ -213,12 +227,14 @@ async def get_shared_folders(
 
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
+    
+    result = await db.execute(
+        select(SharedAccess).options(selectinload(SharedAccess.folder)).filter(SharedAccess.user_id == current_user.id)
+    )
 
-    shared_folders = []
-
-    # for access in current_user.shared_access:
-    #     shared_folders.append(access.folder.name)
-
+    shared_accesses = result.scalars().all()
+    shared_folders = [access.folder.name for access in shared_accesses]
+    
     return shared_folders
 
 
