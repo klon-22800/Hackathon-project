@@ -6,7 +6,6 @@ import LoginForm from "./components/LoginForm";
 import AccountPage from "./components/AccountPage";
 import HeaderComponent from "./components/Header";
 import SharedFilesPage from "./components/SharedFilesPage";
-
 const { Title } = Typography;
 const { Content } = Layout;
 
@@ -14,7 +13,7 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Проверка на авторизован ли пользователь
+
     fetch("http://localhost:8000/auth/me", {
       method: "GET",
       credentials: "include",
@@ -46,9 +45,7 @@ const App = () => {
 
   return (
     <Router>
-      <Layout style={{ minHeight: "100vh" }}>
-        {/* Хэдер с кнопкой выхода */}
-        <HeaderComponent isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+      <Layout style={{ minHeight: "100vh", backgroundImage: "url('src/images/4860404.jpg')", backgroundSize: "cover", backgroundRepeat: "no-repeat" }}>
         <Content
           style={{
             display: "flex",

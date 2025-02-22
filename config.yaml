@@ -1,6 +1,6 @@
 database:
   user: postgres
-  password: klon22800
+  password: postgres
   host: localhost
   port: 5432
   db: google_disk

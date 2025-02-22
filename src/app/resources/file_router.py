@@ -1,13 +1,13 @@
 from fastapi import (
-        APIRouter, 
-        Depends, 
-        File, 
-        Form, 
-        Query, 
-        Request, 
-        UploadFile, 
-        HTTPException
-    )
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Query,
+    Request,
+    UploadFile,
+    HTTPException
+)
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,11 +18,11 @@ from urllib.parse import quote
 
 from src.app.models import Folder, SharedAccess, User
 from src.app.schemas.shemas import (
-    FolderCreateRequest, 
-    RenameFileRequest, 
+    FolderCreateRequest,
+    RenameFileRequest,
     ShareFolderRequest,
     Role
-    )
+)
 from src.app.services.auth import AuthService, UserService
 from src.app.core.database import get_auth_service, get_db, get_s3_service
 from src.app.services.s3 import S3Service
@@ -48,13 +48,14 @@ async def upload_file(
             file_data = await file.read()
             folder = folder_path or ""
             s3_service.upload_file(folder,
-                                current_user.id, file.filename, file_data
-                                )
+                                   current_user.id, file.filename, file_data
+                                   )
             return {"message": "File uploaded successfully"}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
     else:
-        raise HTTPException(status_code=403, detail="Only teachers can upload files")
+        raise HTTPException(
+            status_code=403, detail="Only teachers can upload files")
 
 
 @router.get("/files")
@@ -121,8 +122,9 @@ async def rename_file(
             return {"message": "File renamed successfully"}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-    else: 
-        raise HTTPException(status_code=403, detail="Only teachers can rename files")
+    else:
+        raise HTTPException(
+            status_code=403, detail="Only teachers can rename files")
 
 
 @router.get("/files/download")
@@ -134,6 +136,7 @@ async def download_file(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
 ):
+    print("file_name", file_name)
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
 
@@ -176,14 +179,16 @@ async def share_folder(
     education_programm = data.education_programm
 
     students = await db.execute(
-        select(User).filter((User.course == course) & (User.education_programm == education_programm))
+        select(User).filter((User.course == course) & (
+            User.education_programm == education_programm))
     )
     students = students.scalars().all()
 
     current_user = await user_service.get_current_user(request)
 
     if not students:
-        raise HTTPException(status_code=404, detail="No students found for the given course and program")
+        raise HTTPException(
+            status_code=404, detail="No students found for the given course and program")
 
     path_name = f"users/{current_user.id}/{folder_path}"
     folder = await user_service.get_by_path(path_name)
@@ -193,7 +198,8 @@ async def share_folder(
     for student in students:
         # Проверка на то, есть ли уже доступ
         existing_access = await db.execute(
-            select(SharedAccess).filter( (SharedAccess.folder_id == folder.id) & (SharedAccess.user_id == student.id))
+            select(SharedAccess).filter((SharedAccess.folder_id ==
+                                         folder.id) & (SharedAccess.user_id == student.id))
         )
         existing_access = existing_access.scalars().first()
 
@@ -205,8 +211,8 @@ async def share_folder(
             continue
 
         shared_access = SharedAccess(
-            folder_id=folder.id, 
-            user_id=student.id, 
+            folder_id=folder.id,
+            user_id=student.id,
             permissions=data.permission  # выдача определенных разрешений
         )
         db.add(shared_access)
@@ -214,7 +220,6 @@ async def share_folder(
     await db.commit()
 
     return {"message": "Access granted or updated successfully"}
-
 
 
 @router.get("/folders/shared")
@@ -227,14 +232,15 @@ async def get_shared_folders(
 
     user_service = UserService(db, auth_service)
     current_user = await user_service.get_current_user(request)
-    
+
     result = await db.execute(
-        select(SharedAccess).options(selectinload(SharedAccess.folder)).filter(SharedAccess.user_id == current_user.id)
+        select(SharedAccess).options(selectinload(SharedAccess.folder)
+                                     ).filter(SharedAccess.user_id == current_user.id)
     )
 
     shared_accesses = result.scalars().all()
     shared_folders = [access.folder.name for access in shared_accesses]
-    
+
     return shared_folders
 
 

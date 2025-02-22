@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { List, Dropdown, Menu, Button, message, Modal, Input } from "antd";
+import React, { useState } from "react";
+import { List, Dropdown, Menu, Button, message, Modal, Input, Select } from "antd";
 import { FolderOutlined, FileOutlined, EllipsisOutlined } from "@ant-design/icons";
+
+const { Option } = Select;
 
 const FileList = ({ files, currentPath, setCurrentPath, fetchFiles }) => {
     const [isShareModalVisible, setShareModalVisible] = useState(false);
-    const [shareEmail, setShareEmail] = useState("");
     const [shareFolderPath, setShareFolderPath] = useState("");
-
+    const [educationProgramm, setEducationProgramm] = useState("");
+    const [course, setCourse] = useState(1);
+    const [permission, setPermission] = useState(1);
 
     const handleDelete = (fileName) => {
         fetch(`http://localhost:8000/mydisk/files?path=${encodeURIComponent(currentPath)}&file_name=${encodeURIComponent(fileName)}`, {
@@ -37,7 +40,6 @@ const FileList = ({ files, currentPath, setCurrentPath, fetchFiles }) => {
         }
     };
 
-
     const handleShareFolder = async () => {
         try {
             const response = await fetch(`http://localhost:8000/mydisk/folders/share`, {
@@ -46,7 +48,9 @@ const FileList = ({ files, currentPath, setCurrentPath, fetchFiles }) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     folder_path: shareFolderPath,
-                    user_email: shareEmail,
+                    education_programm: educationProgramm,
+                    course: course,
+                    permission: permission,
                 }),
             });
 
@@ -61,7 +65,9 @@ const FileList = ({ files, currentPath, setCurrentPath, fetchFiles }) => {
             message.error("Не удалось предоставить доступ.");
         } finally {
             setShareModalVisible(false);
-            setShareEmail("");
+            setEducationProgramm("");
+            setCourse(1);
+            setPermission(1);
             setShareFolderPath("");
         }
     };
@@ -210,10 +216,31 @@ const FileList = ({ files, currentPath, setCurrentPath, fetchFiles }) => {
                 cancelText="Отмена"
             >
                 <Input
-                    placeholder="Введите email пользователя"
-                    value={shareEmail}
-                    onChange={(e) => setShareEmail(e.target.value)}
+                    placeholder="Введите образовательную программу"
+                    value={educationProgramm}
+                    onChange={(e) => setEducationProgramm(e.target.value)}
+                    style={{ marginBottom: "10px" }}
                 />
+                <Select
+                    placeholder="Выберите курс"
+                    value={course}
+                    onChange={(value) => setCourse(value)}
+                    style={{ width: "100%", marginBottom: "10px" }}
+                >
+                    <Option value={1}>Курс 1</Option>
+                    <Option value={2}>Курс 2</Option>
+                    <Option value={3}>Курс 3</Option>
+                    <Option value={4}>Курс 4</Option>
+                </Select>
+                <Select
+                    placeholder="Выберите уровень доступа"
+                    value={permission}
+                    onChange={(value) => setPermission(value)}
+                    style={{ width: "100%" }}
+                >
+                    <Option value={1}>Только чтение</Option>
+                    <Option value={2}>Чтение и запись</Option>
+                </Select>
             </Modal>
         </div >
     );

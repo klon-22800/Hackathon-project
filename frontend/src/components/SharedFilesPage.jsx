@@ -49,8 +49,12 @@ const SharedFilesPage = () => {
     };
 
     const handleDownload = (filePath, fileName) => {
+        let result = filePath.endsWith("/")
+            ? filePath.slice(0, -1).concat(fileName)
+            : filePath.concat(fileName);
+        console.log(result);
         fetch(
-            `http://localhost:8000/mydisk/files/download?path=${encodeURIComponent(filePath)}&file_name=${encodeURIComponent(fileName)}`,
+            `http://localhost:8000/mydisk/files/download?file_name=${encodeURIComponent(result)}`,
             {
                 method: "GET",
                 credentials: "include",
@@ -151,7 +155,7 @@ const SharedFilesPage = () => {
                                     <Button
                                         type="link"
                                         onClick={() =>
-                                            handleDownload(item.fullPath, item.displayName)
+                                            handleDownload(currentPath, item.displayName)
                                         }
                                     >
                                         Скачать

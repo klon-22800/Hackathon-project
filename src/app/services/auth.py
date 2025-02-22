@@ -65,14 +65,14 @@ class UserService:
         print(path, "PATH")
         result = await self.db.execute(
             select(Folder).filter(Folder.name == path)
-            )
+        )
         return result.scalar()
 
-    async def create_user(self, email, 
-                          name: str, 
-                          hashed_password: str, 
-                          role: str, 
-                          education_programm: str = None, 
+    async def create_user(self, email,
+                          name: str,
+                          hashed_password: str,
+                          role: str,
+                          education_programm: str = None,
                           course: int = None) -> User:
         if role == Role.student:
             new_user = User(
@@ -82,7 +82,7 @@ class UserService:
                 role=role,
                 education_programm=education_programm,
                 course=course
-        ) 
+            )
         else:
             new_user = User(
                 email=email,
@@ -92,7 +92,7 @@ class UserService:
                 education_programm=None,
                 course=None
             )
-        
+
         self.db.add(new_user)
 
         await self.db.commit()
@@ -105,7 +105,7 @@ class UserService:
         if existing_user:
             raise HTTPException(
                 status_code=400, detail="Email already registered")
-        
+
         new_user = await self.create_user(
             email=user_data.email,
             hashed_password=self.auth_service.get_password_hash(
@@ -116,10 +116,10 @@ class UserService:
             education_programm=user_data.education_programm,
             course=user_data.course
         )
-        
+
         self.db.add(new_user)
-        
-        return  new_user
+
+        return new_user
 
     async def login_user(self, user_data: SUserRegister, response: Response) -> str:
         existing_user = await self.get_user_by_filter(email=user_data.email)
@@ -159,5 +159,5 @@ class UserService:
         for permission in user.shared_access:
             if permission.folder_id == folder.id:
                 return permission.permissions
-        
+
         return None
