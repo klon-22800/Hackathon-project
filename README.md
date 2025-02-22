@@ -2,7 +2,7 @@
 ![ЛитХаб](https://github.com/klon-22800/asm/blob/main/lithub.png)
 
 ## Стэк
-**FastAPI**, **Redis**, **PostgresSQL**, **React**, **Docker**
+**FastAPI**, **Redis**, **PostgresSQL**, **Celery**, **S3**,  **React**, **Docker**
 
 ![FastAPI](https://img.shields.io/badge/fastapi-109989?style=for-the-badge&logo=FASTAPI&logoColor=white)
 ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?&style=for-the-badge&logo=redis&logoColor=white)
@@ -21,6 +21,21 @@
 
 ## Архитектура
 
+Проект основан на микросервисном подходе с использованием современных технологий:
+
+- FastAPI (Python) – backend-сервер, обрабатывающий запросы, аутентификацию и управление файлами.
+
+- PostgreSQL – реляционная база данных для хранения информации о пользователях, ролях и загруженных файлах.
+
+- Redis – кэширование, хранение сессий пользователей и брокер сообщений для задач Celery.
+  
+- S3-совместимое хранилище (Selectel) – хранение загруженных файлов и учебных материалов.
+  
+- Celery – обработка фоновых задач (например, обработка загруженных файлов, генерация превью, рассылка уведомлений).
+  
+- React (JavaScript) – frontend-приложение с интуитивно понятным интерфейсом для взаимодействия с платформой.
+  
+- Docker & Docker Compose – контейнеризация сервисов для удобного развертывания и масштабирования.
 
 ## Команда 
 ![capy](https://github.com/klon-22800/asm/blob/main/capy.jpg)
